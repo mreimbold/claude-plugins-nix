@@ -270,16 +270,67 @@ This package builds the CLI tools from the official [claude-plugins repository](
 
 MIT - Same as upstream claude-plugins
 
+## Automated Dependency Updates
+
+This repository uses GitHub Actions to automatically manage dependency updates:
+
+- **Schedule**: Daily at 8:00 AM UTC
+- **Inputs tracked**: `nixpkgs` (NixOS/nixpkgs/nixos-unstable) and `claude-plugins-src` (Kamalnrf/claude-plugins)
+- **PR behavior**: All updates grouped into a single pull request
+- **CI validation**: Builds all packages and tests executables before creating PR
+- **Labels**: PRs are tagged with `dependencies` and `automated`
+
+### How It Works
+
+1. The workflow runs `nix flake update` to update all inputs
+2. Builds `claude-plugins`, `skills-installer`, and `default` packages
+3. Tests that executables run correctly
+4. Creates a PR only if changes were detected and builds succeed
+5. CI runs on the PR to validate on both Linux and macOS
+
+### Manual Updates
+
+You can still manually update inputs when needed:
+
+```bash
+# Update all inputs
+nix flake update
+
+# Update specific input
+nix flake lock --update-input nixpkgs
+nix flake lock --update-input claude-plugins-src
+
+# Test builds
+nix build .#claude-plugins
+nix build .#skills-installer
+```
+
+### Manual Workflow Trigger
+
+You can manually trigger the update workflow:
+
+1. Go to the "Actions" tab in GitHub
+2. Select "Update Flake Inputs" workflow
+3. Click "Run workflow"
+
+### Adjusting Update Frequency
+
+Edit the cron schedule in `.github/workflows/update-flake-inputs.yml`:
+
+- Daily (current): `'0 8 * * *'`
+- Weekly: `'0 8 * * 1'` (Mondays)
+- Bi-weekly: `'0 8 1,15 * *'` (1st and 15th)
+
 ## Contributing
 
 Contributions welcome! Please open issues or pull requests on GitHub.
 
-### Maintenance Checklist
+### Maintenance Notes
 
-When upstream releases new versions:
+When upstream releases new versions with breaking changes:
 
-1. Update `version` in derivation files (`packages/*.nix`)
-2. Run `nix flake lock --update-input claude-plugins-src`
-3. Test builds: `nix build .#claude-plugins .#skills-installer`
+1. The automated PR may fail CI builds
+2. Review the flake.lock diff to identify what changed
+3. Update `version` in derivation files (`packages/*.nix`) if needed
 4. Test home-manager integration
 5. Update README if new features/options added

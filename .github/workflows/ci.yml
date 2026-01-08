@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v9
+
+      - name: Setup Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v3
+
+      - name: Check flake
+        run: |
+          echo "Running nix flake check..."
+          nix flake check --print-build-logs
+
+      - name: Build claude-plugins
+        run: |
+          echo "Building claude-plugins package..."
+          nix build .#claude-plugins --print-build-logs
+
+      - name: Build skills-installer
+        run: |
+          echo "Building skills-installer package..."
+          nix build .#skills-installer --print-build-logs
+
+      - name: Build default package
+        run: |
+          echo "Building default (combined) package..."
+          nix build .#default --print-build-logs
+
+      - name: Test claude-plugins executable
+        run: |
+          echo "Testing claude-plugins..."
+          ./result/bin/claude-plugins --help
+          ./result/bin/claude-plugins --version || true
+
+      - name: Test skills-installer executable
+        run: |
+          echo "Testing skills-installer..."
+          ./result/bin/skills-installer --help
+          ./result/bin/skills-installer --version || true
+
+      - name: Run development shell check
+        run: |
+          echo "Verifying development shell..."
+          nix develop --command echo "Development shell works"
