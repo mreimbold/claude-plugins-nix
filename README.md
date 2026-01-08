@@ -16,11 +16,11 @@ Nix flake for [claude-plugins](https://github.com/Kamalnrf/claude-plugins) - pro
 
 ```bash
 # Install both tools
-nix profile install github:yourusername/claude-plugins-nix
+nix profile install github:mreimbold/claude-plugins-nix
 
 # Or install individually
-nix profile install github:yourusername/claude-plugins-nix#claude-plugins
-nix profile install github:yourusername/claude-plugins-nix#skills-installer
+nix profile install github:mreimbold/claude-plugins-nix#claude-plugins
+nix profile install github:mreimbold/claude-plugins-nix#skills-installer
 ```
 
 ### Flake Usage
@@ -35,7 +35,7 @@ Add to your `flake.nix`:
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    claude-plugins-nix.url = "github:yourusername/claude-plugins-nix";
+    claude-plugins-nix.url = "github:mreimbold/claude-plugins-nix";
   };
 
   outputs = { nixpkgs, home-manager, claude-plugins-nix, ... }: {
