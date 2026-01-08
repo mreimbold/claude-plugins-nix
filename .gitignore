@@ -1,0 +1,17 @@
+# Nix build results
+result
+result-*
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Planning documents
+docs/PLAN.md

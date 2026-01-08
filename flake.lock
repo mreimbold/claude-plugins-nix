@@ -1,0 +1,44 @@
+{
+  "nodes": {
+    "claude-plugins-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1767889916,
+        "narHash": "sha256-jIXmqy/oy30FDFIoCXCO5mEDWAh54cWBemNAJv52cv4=",
+        "owner": "Kamalnrf",
+        "repo": "claude-plugins",
+        "rev": "5118d1decbd525dcced6ed1f0cd27efd82fb9a75",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Kamalnrf",
+        "repo": "claude-plugins",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1767767207,
+        "narHash": "sha256-Mj3d3PfwltLmukFal5i3fFt27L6NiKXdBezC1EBuZs4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "5912c1772a44e31bf1c63c0390b90501e5026886",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "claude-plugins-src": "claude-plugins-src",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
