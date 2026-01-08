@@ -1,4 +1,8 @@
-{ config, lib, pkgs, ... }:
+{ config
+, lib
+, pkgs
+, ...
+}:
 
 with lib;
 
@@ -11,11 +15,9 @@ in
       enable = mkEnableOption "the claude-plugins CLI tool";
 
       package = mkOption {
-        type = types.package;
-        default = pkgs.claude-plugins or (
-          throw "claude-plugins not available in pkgs. Use flake overlay or add the package to your flake inputs."
-        );
-        defaultText = literalExpression "pkgs.claude-plugins";
+        type = types.nullOr types.package;
+        default = null;
+        defaultText = literalExpression "pkgs.claude-plugins or null";
         description = "The claude-plugins package to use.";
       };
 
@@ -35,28 +37,32 @@ in
       enable = mkEnableOption "the skills-installer CLI tool";
 
       package = mkOption {
-        type = types.package;
-        default = pkgs.skills-installer or (
-          throw "skills-installer not available in pkgs. Use flake overlay or add the package to your flake inputs."
-        );
-        defaultText = literalExpression "pkgs.skills-installer";
+        type = types.nullOr types.package;
+        default = null;
+        defaultText = literalExpression "pkgs.skills-installer or null";
         description = "The skills-installer package to use.";
       };
 
       clients = mkOption {
-        type = types.listOf (types.enum [
-          "claude-code"
-          "codex"
-          "cursor"
-          "github"
-          "letta"
-          "vscode"
-          "amp"
-          "goose"
-          "opencode"
-        ]);
+        type = types.listOf (
+          types.enum [
+            "claude-code"
+            "codex"
+            "cursor"
+            "github"
+            "letta"
+            "vscode"
+            "amp"
+            "goose"
+            "opencode"
+          ]
+        );
         default = [ "claude-code" ];
-        example = [ "claude-code" "cursor" "vscode" ];
+        example = [
+          "claude-code"
+          "cursor"
+          "vscode"
+        ];
         description = ''
           List of AI coding clients to install skills for.
           Skills from globalSkills and localSkills will be installed
@@ -67,7 +73,10 @@ in
       globalSkills = mkOption {
         type = types.listOf types.str;
         default = [ ];
-        example = [ "@anthropics/skills/frontend-design" "@anthropics/skills/pdf" ];
+        example = [
+          "@anthropics/skills/frontend-design"
+          "@anthropics/skills/pdf"
+        ];
         description = ''
           List of skills to install globally for all clients in the clients list.
           Format: @owner/repo/skill-name
@@ -87,20 +96,22 @@ in
       };
 
       skillsByClient = mkOption {
-        type = types.attrsOf (types.submodule {
-          options = {
-            global = mkOption {
-              type = types.listOf types.str;
-              default = [ ];
-              description = "Global skills for this specific client";
+        type = types.attrsOf (
+          types.submodule {
+            options = {
+              global = mkOption {
+                type = types.listOf types.str;
+                default = [ ];
+                description = "Global skills for this specific client";
+              };
+              local = mkOption {
+                type = types.listOf types.str;
+                default = [ ];
+                description = "Local skills for this specific client";
+              };
             };
-            local = mkOption {
-              type = types.listOf types.str;
-              default = [ ];
-              description = "Local skills for this specific client";
-            };
-          };
-        });
+          }
+        );
         default = { };
         example = {
           cursor = {
@@ -123,6 +134,12 @@ in
 
   config = mkMerge [
     (mkIf cfg.claude-plugins.enable {
+      assertions = [
+        {
+          assertion = cfg.claude-plugins.package != null;
+          message = "claude-tools.claude-plugins.enable is true but claude-plugins.package is not set";
+        }
+      ];
       home.packages = [ cfg.claude-plugins.package ];
 
       # Install declared plugins
@@ -140,50 +157,61 @@ in
     })
 
     (mkIf cfg.skills-installer.enable {
+      assertions = [
+        {
+          assertion = cfg.skills-installer.package != null;
+          message = "claude-tools.skills-installer.enable is true but skills-installer.package is not set";
+        }
+      ];
       home.packages = [ cfg.skills-installer.package ];
 
       # Install declared global and local skills
       home.activation.installSkills = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        ${let
-          # Determine if using simple mode or advanced skillsByClient
-          useSimpleMode = cfg.skills-installer.skillsByClient == { };
+        ${
+          let
+            # Determine if using simple mode or advanced skillsByClient
+            useSimpleMode = cfg.skills-installer.skillsByClient == { };
 
-          # Generate installation commands for simple mode
-          simpleCommands = lib.optionalString useSimpleMode ''
-            ${lib.concatMapStringsSep "\n" (client: ''
-              ${lib.concatMapStringsSep "\n" (skill: ''
-                if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
-                  $VERBOSE_ECHO "Installing global skill for ${client}: ${skill}"
-                  $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} "${skill}" || true
-                fi
-              '') cfg.skills-installer.globalSkills}
-              ${lib.concatMapStringsSep "\n" (skill: ''
-                if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
-                  $VERBOSE_ECHO "Installing local skill for ${client}: ${skill}"
-                  $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} --local "${skill}" || true
-                fi
-              '') cfg.skills-installer.localSkills}
-            '') cfg.skills-installer.clients}
-          '';
+            # Generate installation commands for simple mode
+            simpleCommands = lib.optionalString useSimpleMode ''
+              ${lib.concatMapStringsSep "\n" (client: ''
+                ${lib.concatMapStringsSep "\n" (skill: ''
+                  if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
+                    $VERBOSE_ECHO "Installing global skill for ${client}: ${skill}"
+                    $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} "${skill}" || true
+                  fi
+                '') cfg.skills-installer.globalSkills}
+                ${lib.concatMapStringsSep "\n" (skill: ''
+                  if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
+                    $VERBOSE_ECHO "Installing local skill for ${client}: ${skill}"
+                    $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} --local "${skill}" || true
+                  fi
+                '') cfg.skills-installer.localSkills}
+              '') cfg.skills-installer.clients}
+            '';
 
-          # Generate installation commands for advanced per-client mode
-          advancedCommands = lib.optionalString (!useSimpleMode) ''
-            ${lib.concatStringsSep "\n" (lib.mapAttrsToList (client: skills: ''
-              ${lib.concatMapStringsSep "\n" (skill: ''
-                if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
-                  $VERBOSE_ECHO "Installing global skill for ${client}: ${skill}"
-                  $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} "${skill}" || true
-                fi
-              '') skills.global}
-              ${lib.concatMapStringsSep "\n" (skill: ''
-                if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
-                  $VERBOSE_ECHO "Installing local skill for ${client}: ${skill}"
-                  $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} --local "${skill}" || true
-                fi
-              '') skills.local}
-            '') cfg.skills-installer.skillsByClient)}
-          '';
-        in simpleCommands + advancedCommands}
+            # Generate installation commands for advanced per-client mode
+            advancedCommands = lib.optionalString (!useSimpleMode) ''
+              ${lib.concatStringsSep "\n" (
+                lib.mapAttrsToList (client: skills: ''
+                  ${lib.concatMapStringsSep "\n" (skill: ''
+                    if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
+                      $VERBOSE_ECHO "Installing global skill for ${client}: ${skill}"
+                      $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} "${skill}" || true
+                    fi
+                  '') skills.global}
+                  ${lib.concatMapStringsSep "\n" (skill: ''
+                    if ! ${cfg.skills-installer.package}/bin/skills-installer list --client ${client} 2>/dev/null | grep -q "${skill}"; then
+                      $VERBOSE_ECHO "Installing local skill for ${client}: ${skill}"
+                      $DRY_RUN_CMD ${cfg.skills-installer.package}/bin/skills-installer install --client ${client} --local "${skill}" || true
+                    fi
+                  '') skills.local}
+                '') cfg.skills-installer.skillsByClient
+              )}
+            '';
+          in
+          simpleCommands + advancedCommands
+        }
       '';
     })
   ];
