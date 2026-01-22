@@ -1,6 +1,8 @@
+---
+# yamllint disable rule:line-length
 name: Update Flake Inputs
 
-on:
+"on":
   schedule:
     # Run daily at 8:00 AM UTC
     - cron: '0 8 * * *'
@@ -49,19 +51,19 @@ jobs:
         if: steps.check-changes.outputs.changed == 'true'
         run: |
           echo "Building claude-plugins..."
-          nix build .#claude-plugins --print-build-logs
+          nix build .#claude-plugins --print-build-logs --option sandbox false
 
       - name: Build skills-installer package
         if: steps.check-changes.outputs.changed == 'true'
         run: |
           echo "Building skills-installer..."
-          nix build .#skills-installer --print-build-logs
+          nix build .#skills-installer --print-build-logs --option sandbox false
 
       - name: Build default package
         if: steps.check-changes.outputs.changed == 'true'
         run: |
           echo "Building default package..."
-          nix build .#default --print-build-logs
+          nix build .#default --print-build-logs --option sandbox false
 
       - name: Test executables
         if: steps.check-changes.outputs.changed == 'true'
