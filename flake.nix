@@ -1,6 +1,8 @@
 {
   description = "Nix flake for claude-plugins and skills-installer CLI tools";
 
+  nixConfig.sandbox = "relaxed";
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     claude-plugins-src = {
