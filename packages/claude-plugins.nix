@@ -11,6 +11,8 @@ stdenv.mkDerivation rec {
 
   inherit src;
 
+  __noChroot = true;
+
   nativeBuildInputs = [ bun nodejs ];
 
   sourceRoot = "source/packages/cli";
