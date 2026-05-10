@@ -1,62 +1,53 @@
 { lib
 , stdenv
+, buildNpmPackage
 , bun
-, nodejs
 , src
 }:
 
-stdenv.mkDerivation rec {
+buildNpmPackage rec {
   pname = "claude-plugins";
   version = "0.2.0";
 
   inherit src;
 
-  nativeBuildInputs = [ bun nodejs ];
+  nativeBuildInputs = [ bun ];
 
   sourceRoot = "source/packages/cli";
 
+  npmDepsHash = "sha256-FS8lBEWxU5jrelRilgfdKT16KIjm9oKna3LqFFOj5fg=";
+  npmFlags = [ "--workspaces=false" ];
+
   postPatch = ''
-    # Apply giget patch to fix fetch import issue
-    # Changes from ES6 import to CommonJS require for compatibility
-    if [ -f node_modules/giget/dist/shared/giget.OCaTp9b-.mjs ]; then
-      sed -i "s/import { fetch } from 'node-fetch-native\/proxy';/const {fetch} = require('node-fetch-native\/proxy');/" \
-        node_modules/giget/dist/shared/giget.OCaTp9b-.mjs
-    fi
+    cp ${./claude-plugins.package-lock.json} package-lock.json
+    chmod u+w package-lock.json
   '';
 
-  buildPhase = ''
-    runHook preBuild
-
-    export HOME=$TMPDIR
-    bun install --frozen-lockfile --no-progress
-
-    # Apply giget patch after install
-    if [ -f node_modules/giget/dist/shared/giget.OCaTp9b-.mjs ]; then
-      sed -i "s/import { fetch } from 'node-fetch-native\/proxy';/const {fetch} = require('node-fetch-native\/proxy');/" \
-        node_modules/giget/dist/shared/giget.OCaTp9b-.mjs
-    fi
-
-    bun run build
-
-    runHook postBuild
+  preBuild = ''
+    for file in node_modules/giget/dist/shared/giget.*.mjs; do
+      if [ -f "$file" ]; then
+        substituteInPlace "$file" \
+          --replace-fail "import { fetch } from 'node-fetch-native/proxy';" \
+          "const {fetch} = require('node-fetch-native/proxy');"
+      fi
+    done
   '';
 
   installPhase = ''
-        runHook preInstall
+    runHook preInstall
 
-        mkdir -p $out/bin $out/lib/claude-plugins
+    mkdir -p $out/bin $out/lib/claude-plugins
 
-        cp -r dist $out/lib/claude-plugins/
-        cp -r node_modules $out/lib/claude-plugins/
-        cp package.json $out/lib/claude-plugins/
+    cp -r dist $out/lib/claude-plugins/
+    cp package.json $out/lib/claude-plugins/
 
-        cat > $out/bin/claude-plugins <<EOF
+    cat > $out/bin/claude-plugins <<EOF
     #!${stdenv.shell}
     exec ${bun}/bin/bun $out/lib/claude-plugins/dist/index.js "\$@"
     EOF
-        chmod +x $out/bin/claude-plugins
+    chmod +x $out/bin/claude-plugins
 
-        runHook postInstall
+    runHook postInstall
   '';
 
   meta = with lib; {

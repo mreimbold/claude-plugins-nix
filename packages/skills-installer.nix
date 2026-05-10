@@ -1,53 +1,53 @@
 { lib
 , stdenv
+, buildNpmPackage
 , bun
-, nodejs
 , src
 }:
 
-stdenv.mkDerivation rec {
+buildNpmPackage rec {
   pname = "skills-installer";
   version = "0.1.3";
 
   inherit src;
 
-  nativeBuildInputs = [ bun nodejs ];
+  nativeBuildInputs = [ bun ];
 
   sourceRoot = "source/packages/skills-installer";
 
-  buildPhase = ''
-    runHook preBuild
+  npmDepsHash = "sha256-JZ5LCTRj+WHDXy/67dle1MZ2S/nhO9ugEmCLuc6y78c=";
+  npmFlags = [ "--workspaces=false" ];
 
-    export HOME=$TMPDIR
-    bun install --frozen-lockfile --no-progress
+  postPatch = ''
+    cp ${./skills-installer.package-lock.json} package-lock.json
+    chmod u+w package-lock.json
+  '';
 
-    # Apply giget patch after install
-    if [ -f node_modules/giget/dist/shared/giget.OCaTp9b-.mjs ]; then
-      sed -i "s/import { fetch } from 'node-fetch-native\/proxy';/const {fetch} = require('node-fetch-native\/proxy');/" \
-        node_modules/giget/dist/shared/giget.OCaTp9b-.mjs
-    fi
-
-    bun run build
-
-    runHook postBuild
+  preBuild = ''
+    for file in node_modules/giget/dist/shared/giget.*.mjs; do
+      if [ -f "$file" ]; then
+        substituteInPlace "$file" \
+          --replace-fail "import { fetch } from 'node-fetch-native/proxy';" \
+          "const {fetch} = require('node-fetch-native/proxy');"
+      fi
+    done
   '';
 
   installPhase = ''
-        runHook preInstall
+    runHook preInstall
 
-        mkdir -p $out/bin $out/lib/skills-installer
+    mkdir -p $out/bin $out/lib/skills-installer
 
-        cp -r dist $out/lib/skills-installer/
-        cp -r node_modules $out/lib/skills-installer/
-        cp package.json $out/lib/skills-installer/
+    cp -r dist $out/lib/skills-installer/
+    cp package.json $out/lib/skills-installer/
 
-        cat > $out/bin/skills-installer <<EOF
+    cat > $out/bin/skills-installer <<EOF
     #!${stdenv.shell}
     exec ${bun}/bin/bun $out/lib/skills-installer/dist/cli.js "\$@"
     EOF
-        chmod +x $out/bin/skills-installer
+    chmod +x $out/bin/skills-installer
 
-        runHook postInstall
+    runHook postInstall
   '';
 
   meta = with lib; {
