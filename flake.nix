@@ -10,10 +10,10 @@
   };
 
   outputs =
-    {
-      self,
-      nixpkgs,
-      claude-plugins-src,
+    { self
+    , nixpkgs
+    , claude-plugins-src
+    ,
     }:
     let
       systems = [

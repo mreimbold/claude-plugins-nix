@@ -1,6 +1,7 @@
+---
 name: CI
 
-on:
+'on':
   pull_request:
   push:
     branches:
@@ -48,7 +49,8 @@ jobs:
       - name: Test claude-plugins executable
         run: |
           echo "Testing claude-plugins..."
-          ./result/bin/claude-plugins --help
+          mkdir -p "$HOME/.claude"
+          ./result/bin/claude-plugins list
           ./result/bin/claude-plugins --version || true
 
       - name: Test skills-installer executable

@@ -243,10 +243,10 @@ nix flake update
 ### Build Process
 
 1. Fetches source from upstream [claude-plugins repository](https://github.com/Kamalnrf/claude-plugins)
-2. Uses Bun to install dependencies (`bun install --frozen-lockfile`)
-3. Compiles TypeScript to JavaScript (`bun run build`)
-4. Creates wrapper scripts that execute via Bun runtime
-5. Copies built dist and node_modules to Nix store
+2. Uses pinned per-package `package-lock.json` files to build a hashed npm dependency cache
+3. Installs dependencies offline with `npm ci` inside the normal Nix sandbox
+4. Compiles TypeScript to bundled JavaScript with Bun
+5. Copies only built `dist` files and package metadata to the Nix store
 
 ### Home-Manager Integration
 
